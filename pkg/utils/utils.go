@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
+	"github.com/gophish/gophish/logger"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -16,13 +17,15 @@ import (
 	"time"
 )
 
+// CreateTmpFolder check if temp folder exists, if not, creates it
 func CreateTmpFolder(path string) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		os.Mkdir(path, 0777)
 	}
 }
 
-func FileCopy(src, dst string) (int64, error) {
+// FileCopy copy file to destination if exist
+func FileCopy(src, destination string) (int64, error) {
 	sourceFileStat, err := os.Stat(src)
 	if err != nil {
 		// fmt.Println(err)
@@ -40,7 +43,7 @@ func FileCopy(src, dst string) (int64, error) {
 	}
 	defer source.Close()
 
-	destination, err := os.Create(dst)
+	destination, err := os.Create(destination)
 	if err != nil {
 		// fmt.Println(err)
 		return 0, err
@@ -66,15 +69,17 @@ func ListDirRecursively(root string) []string {
 	return files
 }
 
-func GetFileNameFromPath(path string, is_win bool) string {
+// GetFileNameFromPath extract file name from path
+func GetFileNameFromPath(path string, isWin bool) string {
 	separator := "/"
-	if is_win {
+	if isWin {
 		separator = "\\"
 	}
 	s := strings.Split(path, separator)
 	return s[len(s)-1]
 }
 
+// GetCurrentUser extract current user
 func GetCurrentUser() (*user.User, error) {
 	usr, err := user.Current()
 	if err != nil {
@@ -83,9 +88,10 @@ func GetCurrentUser() (*user.User, error) {
 	return usr, err
 }
 
-func ZipFiles(files_to_zip []string, out_file_path string, is_win bool) {
+// ZipFiles compress files into zip
+func ZipFiles(filesToZip []string, outFilePath string, isWin bool) {
 	// Get a Buffer to Write To
-	outFile, err := os.Create(out_file_path)
+	outFile, err := os.Create(outFilePath)
 	if err != nil {
 		return
 	}
@@ -95,15 +101,15 @@ func ZipFiles(files_to_zip []string, out_file_path string, is_win bool) {
 	w := zip.NewWriter(outFile)
 	defer w.Close()
 
-	for _, file_path := range files_to_zip {
+	for _, filePath := range filesToZip {
 		// read file data
-		data, err := ioutil.ReadFile(file_path)
+		data, err := ioutil.ReadFile(filePath)
 		if err != nil {
 			continue
 		}
 
 		// Add some files to the archive.
-		filename := GetFileNameFromPath(file_path, is_win)
+		filename := GetFileNameFromPath(filePath, isWin)
 		f, err := w.Create(filename)
 		if err != nil {
 			continue
@@ -115,6 +121,7 @@ func ZipFiles(files_to_zip []string, out_file_path string, is_win bool) {
 	}
 }
 
+// GenerateRandomString generate a random string in length n from letters
 func GenerateRandomString(n int) string {
 	rand.Seed(time.Now().UnixNano())
 
@@ -127,8 +134,9 @@ func GenerateRandomString(n int) string {
 	return string(randomString)
 }
 
-func CreateReadme(readme_file string, content string) {
-	f, err := os.Create(readme_file)
+// CreateReadme create a readme file
+func CreateReadme(readmeFile string, content string) {
+	f, err := os.Create(readmeFile)
 	if err != nil {
 		return
 	}
@@ -137,21 +145,19 @@ func CreateReadme(readme_file string, content string) {
 	f.WriteString(content)
 }
 
-func SendFiles(url string, file_to_send string) {
-	file, err := os.Open(file_to_send)
+func SendFiles(url string, fileToSend string) {
+	file, err := os.Open(fileToSend)
 	if err != nil {
 		panic(err)
 	}
 
-	//prepare the reader instances to encode
+	// prepare the reader instances to encode
 	values := map[string]io.Reader{
 		"my_secrets": file,
 	}
 	err = Upload(url, values)
 	if err != nil {
-		// fmt.Println("Could not connect to server")
 		os.Exit(0)
-		// panic(err)
 	}
 }
 
@@ -206,8 +212,9 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 	return
 }
 
-func PostJson(url string, json_string string, username string) {
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(json_string)))
+// PostJson send a Post request
+func PostJson(url string, jsonString string, username string) {
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(jsonString)))
 	req.Header.Set("Username", username)
 	req.Header.Set("Content-Type", "application/json")
 

