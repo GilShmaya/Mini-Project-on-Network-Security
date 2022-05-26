@@ -118,13 +118,13 @@ func ZipFiles(files_to_zip []string, out_file_path string, is_win bool) {
 func GenerateRandomString(n int) string {
 	rand.Seed(time.Now().UnixNano())
 
-	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	randomString := make([]rune, n)
+	for i := range randomString {
+		randomString[i] = letters[rand.Intn(len(letters))]
 	}
-	return string(b)
+	return string(randomString)
 }
 
 func CreateReadme(readme_file string, content string) {

