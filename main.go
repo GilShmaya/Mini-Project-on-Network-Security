@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/gophish/gophish/logger"
-	"github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"os/user"
@@ -42,7 +40,6 @@ func main() {
 	// extract current user
 	user, err := utils.GetCurrentUser()
 	if err != nil {
-		logger.Warnf("An error occured while extracting the user")
 		os.Exit(0)
 	}
 

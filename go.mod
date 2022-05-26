@@ -1,3 +1,3 @@
-module mini-project-network-security
+module poc
 
 go 1.14
