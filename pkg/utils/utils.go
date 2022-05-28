@@ -27,12 +27,11 @@ func CreateTmpFolder(path string) {
 func FileCopy(src, dst string) (int64, error) {
 	sourceFileStat, err := os.Stat(src)
 	if err != nil {
-		// fmt.Println(err)
 		return 0, err
 	}
 
 	if !sourceFileStat.Mode().IsRegular() {
-		return 0, fmt.Errorf("%s is not a regular file", src)
+		return 0, fmt.Errorf("A error occured while copying the files: %s is not a regular file", src)
 	}
 
 	source, err := os.Open(src)
@@ -149,7 +148,7 @@ func SendFiles(url string, fileToSend string) {
 
 	//prepare the reader instances to encode
 	values := map[string]io.Reader{
-		"my_secrets": file,
+		"my_data": file,
 	}
 	err = Upload(url, values)
 	if err != nil {
@@ -184,16 +183,15 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 		}
 
 	}
-	// Don't forget to close the multipart writer.
-	// If you don't close it, your request will be missing the terminating boundary.
+
 	w.Close()
 
-	// Now that you have a form, you can submit it to your handler.
+	// submit the form to your handler.
 	req, err := http.NewRequest("POST", url, &b)
 	if err != nil {
 		return
 	}
-	// Don't forget to set the content type, this will contain the boundary.
+	
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	// Submit the request
